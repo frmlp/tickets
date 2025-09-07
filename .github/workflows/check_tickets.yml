@@ -29,4 +29,6 @@ jobs:
         RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         BASE_URL: ${{ secrets.BASE_URL }}
         PLAYS: ${{ secrets.PLAYS }}
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
       run: python script.py

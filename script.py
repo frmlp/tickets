@@ -7,7 +7,7 @@ from email.mime.multipart import MIMEMultipart
 import json
 
 
-def send_email(play_name):
+def send_email(play_name, success):
     print("Preparing to send email notification...")
     # Email configuration
     sender_email = os.getenv('SENDER_EMAIL')
@@ -18,16 +18,23 @@ def send_email(play_name):
     message = MIMEMultipart()
     message["From"] = sender_email
     message["To"] = receiver_email
-    message["Subject"] = "Tickets Available!"
-    
+
     print("Creating email content...")
-    body = "Tickets are now available for " + play_name + "!"
+    if(success):
+        message["Subject"] = "Tickets Available!"
+        body = f"Tickets are now available for {play_name} !"
+    else:
+        message["Subject"] = "Error Checking Tickets"
+        body = f"An error occurred while checking tickets for {play_name}"
+    
     message.attach(MIMEText(body, "plain"))
     
     print("Email content created. Setting up email server...")
     # Send email
     try:
-        with smtplib.SMTP_SSL("smtp.wp.pl", 465) as server:
+        SMTP_SERVER = os.getenv('SMTP_SERVER')
+        SMTP_PORT = int(os.getenv('SMTP_PORT'))
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             print("Logging in to email server...")
             server.login(sender_email, sender_password)
             print("Sending email...")
@@ -49,6 +56,9 @@ def check_tickets(name):
         
         # Find all div elements with class 'repertuare-shows'
         repertoire_divs = soup.find_all('div', class_='repertuare-shows')
+
+        if not repertoire_divs:
+            raise Exception("No repertoire shows found on the page. Please check the URL or the page structure.")
         
         # Check if there are any 'a' elements within these divs
         for div in repertoire_divs:
@@ -58,10 +68,10 @@ def check_tickets(name):
 
     except requests.RequestException as e:
         print(f"Error downloading the page: {e}")
-        return False
+        raise  # Re-raise the exception
     except Exception as e:
         print(f"Error processing the page: {e}")
-        return False
+        raise  # Re-raise the exception
     
 
 # Load plays from environment variable
@@ -69,10 +79,12 @@ plays_json = os.getenv('PLAYS').strip()
 plays = json.loads(plays_json)
 
 for play in plays:
-    print(f"Checking tickets for: {play}")
-    if check_tickets(play):
-        print(f"Tickets available for {play}")
-        send_email(play)
-    else:
-        print(f"No tickets found for {play}")
-
+    try:
+        print(f"Checking tickets for: {play}")
+        if check_tickets(play):
+            print(f"Tickets available for {play}")
+            send_email(play, True)
+        else:
+            print(f"No tickets found for {play}")
+    except Exception as e:
+        send_email(play, False)
