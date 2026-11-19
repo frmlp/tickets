@@ -5,10 +5,6 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import json
-from dotenv import load_dotenv
-
-load_dotenv()
-
 
 def send_email(play_name, success):
     print("Preparing to send email notification...")
