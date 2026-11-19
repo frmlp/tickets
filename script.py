@@ -5,6 +5,9 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def send_email(play_name, success):
@@ -45,6 +48,7 @@ def send_email(play_name, success):
 
 
 def check_tickets(name):
+    print(f"Checking tickets for {name} on {os.getenv('DATE')}...")
     try:
         # Download the webpage
         url = os.getenv('BASE_URL') + "/" + name
@@ -53,17 +57,16 @@ def check_tickets(name):
 
         # Parse the HTML
         soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Find all div elements with class 'repertuare-shows'
-        repertoire_divs = soup.find_all('div', class_='repertuare-shows')
 
-        if not repertoire_divs:
-            raise Exception("No repertoire shows found on the page. Please check the URL or the page structure.")
-        
-        # Check if there are any 'a' elements within these divs
-        for div in repertoire_divs:
-            if div.find('a'):
-                return True
+        repertuare_grid_divs = soup.find_all('div', class_='repertuare-grid')
+        if not repertuare_grid_divs:
+            raise Exception("No repertuare grid found on the page. Please check the URL or the page structure.")
+        for div in repertuare_grid_divs:
+            time_element = div.find('time', datetime=os.getenv('DATE'))
+            if time_element:
+                print(f"Found time element for date {os.getenv('DATE')}")
+                if div.find('a'):
+                    return True
         return False
 
     except requests.RequestException as e:
@@ -73,18 +76,17 @@ def check_tickets(name):
         print(f"Error processing the page: {e}")
         raise  # Re-raise the exception
     
+if __name__ == "__main__":
+    # Load plays from environment variable
+    plays_json = os.getenv('PLAYS').strip()
+    plays = json.loads(plays_json)
 
-# Load plays from environment variable
-plays_json = os.getenv('PLAYS').strip()
-plays = json.loads(plays_json)
-
-for play in plays:
-    try:
-        print(f"Checking tickets for: {play}")
-        if check_tickets(play):
-            print(f"Tickets available for {play}")
-            send_email(play, True)
-        else:
-            print(f"No tickets found for {play}")
-    except Exception as e:
-        send_email(play, False)
+    for play in plays:
+        try:
+            if check_tickets(play):
+                print(f"Tickets available for {play}")
+                send_email(play, True)
+            else:
+                print(f"No tickets found for {play}")
+        except Exception as e:
+            send_email(play, False)
