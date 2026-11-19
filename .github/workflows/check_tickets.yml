@@ -31,4 +31,5 @@ jobs:
         PLAYS: ${{ secrets.PLAYS }}
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
         SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        DATE: ${{ secrets.DATE }}
       run: python script.py
